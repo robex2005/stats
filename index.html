@@ -31,25 +31,30 @@
   <main class="wrap">
     <p id="status" class="status" role="status" aria-live="polite"></p>
 
+    <section class="tracked" aria-label="Tracked repositories">
+      <h2 class="section-label">Tracked repositories</h2>
+      <div id="trackedList" class="chips"></div>
+    </section>
+
     <section id="totals" class="totals" hidden>
       <div class="stat-card">
         <div class="stat-icon">⬇️</div>
-        <span class="stat-value" id="totalDownloads">—</span>
+        <span class="stat-value" id="totalDownloads">0</span>
         <span class="stat-label">Total downloads</span>
       </div>
       <div class="stat-card">
         <div class="stat-icon">⭐</div>
-        <span class="stat-value" id="totalStars">—</span>
+        <span class="stat-value" id="totalStars">0</span>
         <span class="stat-label">Total stars</span>
       </div>
       <div class="stat-card">
         <div class="stat-icon">🍴</div>
-        <span class="stat-value" id="totalForks">—</span>
+        <span class="stat-value" id="totalForks">0</span>
         <span class="stat-label">Total forks</span>
       </div>
       <div class="stat-card">
         <div class="stat-icon">🏷️</div>
-        <span class="stat-value" id="totalReleases">—</span>
+        <span class="stat-value" id="totalReleases">0</span>
         <span class="stat-label">Releases</span>
       </div>
     </section>

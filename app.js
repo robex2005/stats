@@ -6,6 +6,7 @@
   const els = {
     refresh: document.getElementById("refresh"),
     status: document.getElementById("status"),
+    trackedList: document.getElementById("trackedList"),
     totals: document.getElementById("totals"),
     totalDownloads: document.getElementById("totalDownloads"),
     totalStars: document.getElementById("totalStars"),
@@ -214,6 +215,23 @@
     els.refresh.classList.remove("spinning");
   }
 
+  function renderTracked(repos) {
+    els.trackedList.innerHTML = "";
+    if (!repos.length) {
+      els.trackedList.appendChild(el("span", "muted", "None configured."));
+      return;
+    }
+    for (const slug of repos) {
+      const chip = el("a", "chip",
+        `<span class="dot"></span>${escapeHtml(slug)}`);
+      chip.href = `https://github.com/${slug}`;
+      chip.target = "_blank";
+      chip.rel = "noopener";
+      els.trackedList.appendChild(chip);
+    }
+  }
+
   els.refresh.addEventListener("click", loadAll);
+  renderTracked((window.STATS_CONFIG && window.STATS_CONFIG.repos) || []);
   loadAll();
 })();

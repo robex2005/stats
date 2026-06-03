@@ -116,6 +116,41 @@ main.wrap { padding-bottom: 48px; }
 .status { margin: 4px 0 20px; min-height: 1.1em; color: var(--muted); font-size: 0.9rem; }
 .status.error { color: #ff8a80; }
 
+/* Section label */
+.section-label {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Tracked repositories chips */
+.tracked { margin-bottom: 32px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.chip:hover { border-color: var(--accent); background: var(--bg-elev-2); transform: translateY(-1px); }
+.chip .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--violet));
+  flex: none;
+}
+
 /* Totals */
 .totals {
   display: grid;
@@ -272,9 +307,37 @@ main.wrap { padding-bottom: 48px; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Tablet */
+@media (max-width: 700px) {
+  .totals { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+/* Phone */
 @media (max-width: 560px) {
-  .app-header { padding-top: 28px; }
-  .repo-badges { margin-left: 0; width: 100%; }
-  .repo-head { padding: 18px; }
-  .stat-value { font-size: 1.8rem; }
+  .wrap { padding: 0 16px; }
+  .app-header { padding: 24px 0 20px; }
+  .header-inner { gap: 12px; }
+  .brand { gap: 12px; }
+  .brand-icon { width: 46px; height: 46px; font-size: 1.5rem; border-radius: 13px; }
+  .app-header h1 { font-size: 1.35rem; }
+  .subtitle { font-size: 0.85rem; }
+  .icon-btn { padding: 9px 14px; }
+
+  .stat-card { padding: 16px; }
+  .stat-value { font-size: 1.7rem; }
+  .stat-icon { font-size: 1.2rem; margin-bottom: 6px; }
+
+  .repo-head { padding: 16px; gap: 10px; }
+  .repo-head h2 { font-size: 1.02rem; width: 100%; word-break: break-word; }
+  .repo-badges { margin-left: 0; width: 100%; gap: 8px; }
+  .badge { padding: 4px 10px; font-size: 0.82rem; }
+
+  .rel-list { padding: 6px; }
+  .rel { padding: 11px 10px; }
+  .asset { padding-left: 10px; font-size: 0.82rem; }
+}
+
+/* Small phone */
+@media (max-width: 380px) {
+  .totals { grid-template-columns: 1fr; }
 }
