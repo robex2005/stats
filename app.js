@@ -98,47 +98,60 @@
         <span class="badge">⬇️ <b>${fmt(data.downloads)}</b></span>
       </div>`));
 
-    const withAssets = data.releases.filter((r) => (r.assets || []).length > 0);
-
-    if (withAssets.length === 0) {
-      card.appendChild(el("p", "empty-note",
-        data.releases.length === 0
-          ? "No releases published yet."
-          : "Releases exist, but none have downloadable assets."));
+    if (data.releases.length === 0) {
+      card.appendChild(el("p", "empty-note", "No releases published yet."));
       return card;
     }
 
-    const max = Math.max(
-      1,
-      ...withAssets.map((r) => (r.assets || []).reduce((s, a) => s + (a.download_count || 0), 0))
-    );
+    const totalOf = (rel) =>
+      (rel.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
+    const max = Math.max(1, ...data.releases.map(totalOf));
 
     const list = el("div", "rel-list");
-    for (const rel of withAssets) {
-      const total = (rel.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
-      const pct = Math.max(2, Math.round((total / max) * 100));
+    for (const rel of data.releases) {
+      const total = totalOf(rel);
       const name = rel.name || rel.tag_name || "(untitled)";
+      const date = rel.published_at
+        ? new Date(rel.published_at).toLocaleDateString()
+        : "";
 
       const item = el("div", "rel");
       item.appendChild(el("div", "rel-top", `
         <span class="rel-name">${escapeHtml(name)}${
           rel.tag_name ? `<span class="rel-tag">${escapeHtml(rel.tag_name)}</span>` : ""
+        }${rel.prerelease ? `<span class="rel-tag pre">pre-release</span>` : ""}${
+          rel.draft ? `<span class="rel-tag">draft</span>` : ""
         }</span>
         <span class="rel-count">${fmt(total)} <small>dl</small></span>`));
 
-      const bar = el("div", "bar");
-      const fill = el("span");
-      fill.style.width = pct + "%";
-      bar.appendChild(fill);
-      item.appendChild(bar);
+      if (date) item.appendChild(el("div", "rel-date", `Published ${escapeHtml(date)}`));
 
-      const assets = el("div", "assets");
-      for (const a of rel.assets) {
-        assets.appendChild(el("div", "asset", `
-          <a href="${a.browser_download_url}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>
-          <span class="a-count">${fmt(a.download_count || 0)}</span>`));
+      // Only show the proportion bar when there are tracked downloads.
+      if (total > 0) {
+        const bar = el("div", "bar");
+        const fill = el("span");
+        fill.style.width = Math.max(2, Math.round((total / max) * 100)) + "%";
+        bar.appendChild(fill);
+        item.appendChild(bar);
       }
-      item.appendChild(assets);
+
+      if ((rel.assets || []).length > 0) {
+        const assets = el("div", "assets");
+        for (const a of rel.assets) {
+          assets.appendChild(el("div", "asset", `
+            <a href="${a.browser_download_url}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>
+            <span class="a-count">${fmt(a.download_count || 0)}</span>`));
+        }
+        item.appendChild(assets);
+      } else {
+        const note = el("div", "asset-note",
+          "No downloadable assets — source-code archives aren't counted by GitHub.");
+        if (rel.html_url) {
+          note.innerHTML += ` <a href="${rel.html_url}" target="_blank" rel="noopener">View release ↗</a>`;
+        }
+        item.appendChild(note);
+      }
+
       list.appendChild(item);
     }
     card.appendChild(list);
