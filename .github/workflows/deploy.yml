@@ -16,10 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Build runs without the github-pages environment gate, so it can enable
+  # Pages via the API before the gated deploy job is scheduled.
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,15 +27,22 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          # Enable Pages via the API if it isn't already enabled.
+          # Enable Pages (build type "workflow") via the API if needed.
           enablement: true
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          # The whole repo root is the static site.
+          # The repo root is the static site.
           path: .
 
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
