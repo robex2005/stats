@@ -2,11 +2,8 @@
   "use strict";
 
   const API = "https://api.github.com";
-  const TOKEN_KEY = "gh_stats_token";
 
   const els = {
-    token: document.getElementById("token"),
-    saveToken: document.getElementById("saveToken"),
     refresh: document.getElementById("refresh"),
     status: document.getElementById("status"),
     totals: document.getElementById("totals"),
@@ -20,21 +17,12 @@
 
   const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : n);
 
-  function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || "";
-  }
-
   function setStatus(msg, isError = false) {
     els.status.textContent = msg || "";
     els.status.classList.toggle("error", !!isError);
   }
 
-  function headers() {
-    const h = { Accept: "application/vnd.github+json" };
-    const token = getToken();
-    if (token) h.Authorization = `Bearer ${token}`;
-    return h;
-  }
+  const headers = () => ({ Accept: "application/vnd.github+json" });
 
   // Fetch all pages of a paginated GitHub endpoint, following the Link header.
   async function fetchAll(url) {
@@ -44,15 +32,13 @@
       const res = await fetch(next, { headers: headers() });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
-        const err = new Error(
-          `${res.status} ${res.statusText}${body ? ` — ${truncate(body)}` : ""}`
-        );
+        const err = new Error(`${res.status} ${res.statusText} — ${describe(body)}`);
         err.status = res.status;
         throw err;
       }
       const data = await res.json();
-      if (Array.isArray(data)) out.push(...data);
-      else return data; // non-array endpoint (e.g. repo metadata)
+      if (!Array.isArray(data)) return data; // non-array endpoint (repo metadata)
+      out.push(...data);
       next = parseNextLink(res.headers.get("Link"));
     }
     return out;
@@ -60,117 +46,108 @@
 
   function parseNextLink(link) {
     if (!link) return null;
-    const match = link.split(",").find((p) => /rel="next"/.test(p));
-    if (!match) return null;
-    const m = match.match(/<([^>]+)>/);
+    const part = link.split(",").find((p) => /rel="next"/.test(p));
+    const m = part && part.match(/<([^>]+)>/);
     return m ? m[1] : null;
   }
 
-  function truncate(s, n = 160) {
+  function describe(s) {
     try {
-      const parsed = JSON.parse(s);
-      if (parsed && parsed.message) return parsed.message;
+      const p = JSON.parse(s);
+      if (p && p.message) return p.message;
     } catch (_) { /* not json */ }
-    return s.length > n ? s.slice(0, n) + "…" : s;
+    return s.slice(0, 140);
   }
 
   async function loadRepo(slug) {
     const [owner, repo] = slug.split("/");
-    const repoInfo = await fetchAll(`${API}/repos/${owner}/${repo}`);
-    const releases = await fetchAll(
-      `${API}/repos/${owner}/${repo}/releases?per_page=100`
-    );
+    const info = await fetchAll(`${API}/repos/${owner}/${repo}`);
+    const releases = await fetchAll(`${API}/repos/${owner}/${repo}/releases?per_page=100`);
 
     let downloads = 0;
     for (const rel of releases) {
-      for (const asset of rel.assets || []) {
-        downloads += asset.download_count || 0;
-      }
+      for (const asset of rel.assets || []) downloads += asset.download_count || 0;
     }
 
     return {
       slug,
-      url: repoInfo.html_url || `https://github.com/${slug}`,
-      stars: repoInfo.stargazers_count || 0,
-      forks: repoInfo.forks_count || 0,
+      url: info.html_url || `https://github.com/${slug}`,
+      stars: info.stargazers_count || 0,
+      forks: info.forks_count || 0,
       releases,
       downloads,
     };
   }
 
+  function el(tag, className, html) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (html != null) node.innerHTML = html;
+    return node;
+  }
+
   function renderRepo(data) {
-    const card = document.createElement("section");
-    card.className = "repo-card";
+    const card = el("section", "repo-card");
 
-    const head = document.createElement("div");
-    head.className = "repo-head";
-    head.innerHTML = `
-      <h2><a href="${data.url}" target="_blank" rel="noopener">${data.slug}</a></h2>
+    card.appendChild(el("div", "repo-head", `
+      <h2><a href="${data.url}" target="_blank" rel="noopener">${escapeHtml(data.slug)}</a></h2>
       <div class="repo-badges">
-        <span>★ <b>${fmt(data.stars)}</b> stars</span>
-        <span>⑂ <b>${fmt(data.forks)}</b> forks</span>
-        <span>⬇ <b>${fmt(data.downloads)}</b> downloads</span>
-      </div>`;
-    card.appendChild(head);
+        <span class="badge">⭐ <b>${fmt(data.stars)}</b></span>
+        <span class="badge">🍴 <b>${fmt(data.forks)}</b></span>
+        <span class="badge">⬇️ <b>${fmt(data.downloads)}</b></span>
+      </div>`));
 
-    const releasesWithAssets = data.releases.filter(
-      (r) => (r.assets || []).length > 0
-    );
+    const withAssets = data.releases.filter((r) => (r.assets || []).length > 0);
 
-    if (releasesWithAssets.length === 0) {
-      const note = document.createElement("p");
-      note.className = "empty-note";
-      note.textContent =
+    if (withAssets.length === 0) {
+      card.appendChild(el("p", "empty-note",
         data.releases.length === 0
           ? "No releases published yet."
-          : "Releases exist, but none have downloadable assets.";
-      card.appendChild(note);
+          : "Releases exist, but none have downloadable assets."));
       return card;
     }
 
-    const table = document.createElement("table");
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Release / asset</th>
-          <th class="num">Downloads</th>
-        </tr>
-      </thead>`;
-    const tbody = document.createElement("tbody");
+    const max = Math.max(
+      1,
+      ...withAssets.map((r) => (r.assets || []).reduce((s, a) => s + (a.download_count || 0), 0))
+    );
 
-    for (const rel of releasesWithAssets) {
-      const relTotal = (rel.assets || []).reduce(
-        (s, a) => s + (a.download_count || 0),
-        0
-      );
-      const relName = rel.name || rel.tag_name || "(untitled)";
-      const relRow = document.createElement("tr");
-      relRow.className = "release-row";
-      relRow.innerHTML = `
-        <td>${escapeHtml(relName)}${rel.tag_name ? ` <span class="muted">(${escapeHtml(rel.tag_name)})</span>` : ""}</td>
-        <td class="num">${fmt(relTotal)}</td>`;
-      tbody.appendChild(relRow);
+    const list = el("div", "rel-list");
+    for (const rel of withAssets) {
+      const total = (rel.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
+      const pct = Math.max(2, Math.round((total / max) * 100));
+      const name = rel.name || rel.tag_name || "(untitled)";
 
-      for (const asset of rel.assets) {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class="asset-name">&nbsp;&nbsp;<a href="${asset.browser_download_url}" target="_blank" rel="noopener">${escapeHtml(asset.name)}</a></td>
-          <td class="num">${fmt(asset.download_count || 0)}</td>`;
-        tbody.appendChild(row);
+      const item = el("div", "rel");
+      item.appendChild(el("div", "rel-top", `
+        <span class="rel-name">${escapeHtml(name)}${
+          rel.tag_name ? `<span class="rel-tag">${escapeHtml(rel.tag_name)}</span>` : ""
+        }</span>
+        <span class="rel-count">${fmt(total)} <small>dl</small></span>`));
+
+      const bar = el("div", "bar");
+      const fill = el("span");
+      fill.style.width = pct + "%";
+      bar.appendChild(fill);
+      item.appendChild(bar);
+
+      const assets = el("div", "assets");
+      for (const a of rel.assets) {
+        assets.appendChild(el("div", "asset", `
+          <a href="${a.browser_download_url}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>
+          <span class="a-count">${fmt(a.download_count || 0)}</span>`));
       }
+      item.appendChild(assets);
+      list.appendChild(item);
     }
-
-    table.appendChild(tbody);
-    card.appendChild(table);
+    card.appendChild(list);
     return card;
   }
 
   function renderRepoError(slug, message) {
-    const card = document.createElement("section");
-    card.className = "repo-card";
-    card.innerHTML = `
-      <div class="repo-head"><h2>${slug}</h2></div>
-      <p class="repo-error">⚠ Could not load: ${escapeHtml(message)}</p>`;
+    const card = el("section", "repo-card");
+    card.appendChild(el("div", "repo-head", `<h2>${escapeHtml(slug)}</h2>`));
+    card.appendChild(el("p", "repo-error", `⚠️ Could not load: ${escapeHtml(message)}`));
     return card;
   }
 
@@ -187,15 +164,9 @@
       return;
     }
 
-    els.refresh.disabled = true;
+    els.refresh.classList.add("spinning");
     setStatus("Loading…");
     els.repos.innerHTML = "";
-
-    let totalDownloads = 0;
-    let totalStars = 0;
-    let totalForks = 0;
-    let totalReleases = 0;
-    let anyOk = false;
 
     const results = await Promise.all(
       repos.map((slug) =>
@@ -206,54 +177,43 @@
       )
     );
 
+    let downloads = 0, stars = 0, forks = 0, releases = 0, anyOk = false;
     for (const r of results) {
       if (r.ok) {
         anyOk = true;
-        totalDownloads += r.data.downloads;
-        totalStars += r.data.stars;
-        totalForks += r.data.forks;
-        totalReleases += r.data.releases.length;
+        downloads += r.data.downloads;
+        stars += r.data.stars;
+        forks += r.data.forks;
+        releases += r.data.releases.length;
         els.repos.appendChild(renderRepo(r.data));
       } else {
         els.repos.appendChild(renderRepoError(r.slug, r.err.message));
       }
     }
 
-    els.totalDownloads.textContent = fmt(totalDownloads);
-    els.totalStars.textContent = fmt(totalStars);
-    els.totalForks.textContent = fmt(totalForks);
-    els.totalReleases.textContent = fmt(totalReleases);
+    els.totalDownloads.textContent = fmt(downloads);
+    els.totalStars.textContent = fmt(stars);
+    els.totalForks.textContent = fmt(forks);
+    els.totalReleases.textContent = fmt(releases);
     els.totals.hidden = false;
     els.updatedAt.textContent = new Date().toLocaleString();
 
     const failures = results.filter((r) => !r.ok);
     if (failures.length && !anyOk) {
-      const needsAuth = failures.some((f) => f.err.status === 404 || f.err.status === 401);
+      const rateLimited = failures.some((f) => f.err.status === 403);
       setStatus(
-        needsAuth
-          ? "All repositories failed to load. Private repos require a valid token with 'repo' scope."
+        rateLimited
+          ? "GitHub API rate limit reached (60 requests/hour for anonymous access). Try again later."
           : "Failed to load repositories. See details in the cards above.",
         true
       );
-    } else if (failures.length) {
-      setStatus(`Loaded with ${failures.length} error(s).`, true);
     } else {
-      setStatus("");
+      setStatus(failures.length ? `Loaded with ${failures.length} error(s).` : "");
     }
 
-    els.refresh.disabled = false;
+    els.refresh.classList.remove("spinning");
   }
 
-  // --- wire up UI ---
-  els.token.value = getToken();
-  els.saveToken.addEventListener("click", () => {
-    const v = els.token.value.trim();
-    if (v) localStorage.setItem(TOKEN_KEY, v);
-    else localStorage.removeItem(TOKEN_KEY);
-    setStatus(v ? "Token saved to this browser." : "Token cleared.");
-    loadAll();
-  });
   els.refresh.addEventListener("click", loadAll);
-
   loadAll();
 })();

@@ -21,18 +21,11 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-### Private repositories & rate limits
+### Rate limits
 
-Public repos work with no setup. For **private** repos (or to avoid the
-unauthenticated rate limit of 60 requests/hour), paste a
-[GitHub personal access token](https://github.com/settings/tokens) into the
-token field and click **Save**:
-
-- Fine-grained token: read-only **Contents** + **Metadata** access to the repos.
-- Classic token: `repo` scope (or `public_repo` for public-only).
-
-The token is stored **only in your browser's `localStorage`** — it is never sent
-anywhere except to `api.github.com`.
+The page calls the public GitHub API anonymously, which is limited to 60
+requests/hour per IP. That's plenty for a handful of public repos; if you hit
+the limit, just wait and refresh.
 
 ## Configuration
 

@@ -4,51 +4,51 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Download Statistics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
   <header class="app-header">
-    <div class="wrap">
-      <h1>📊 Download Statistics</h1>
-      <p class="subtitle">GitHub release downloads, stars &amp; forks for selected repositories</p>
+    <div class="wrap header-inner">
+      <div class="brand">
+        <div class="brand-icon">📊</div>
+        <div>
+          <h1>Download Statistics</h1>
+          <p class="subtitle">GitHub release downloads, stars &amp; forks</p>
+        </div>
+      </div>
+      <button id="refresh" type="button" class="icon-btn" title="Refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span>Refresh</span>
+      </button>
     </div>
   </header>
 
   <main class="wrap">
-    <section class="controls">
-      <div class="token-row">
-        <label for="token">
-          GitHub token <span class="muted">(optional — required for private repos &amp; higher rate limit)</span>
-        </label>
-        <div class="token-input">
-          <input
-            type="password"
-            id="token"
-            placeholder="ghp_… or github_pat_… (stored only in your browser)"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="saveToken" type="button">Save</button>
-          <button id="refresh" type="button" class="primary">Refresh</button>
-        </div>
-      </div>
-      <p id="status" class="status" role="status" aria-live="polite"></p>
-    </section>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
 
     <section id="totals" class="totals" hidden>
       <div class="stat-card">
+        <div class="stat-icon">⬇️</div>
         <span class="stat-value" id="totalDownloads">—</span>
         <span class="stat-label">Total downloads</span>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">⭐</div>
         <span class="stat-value" id="totalStars">—</span>
         <span class="stat-label">Total stars</span>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">🍴</div>
         <span class="stat-value" id="totalForks">—</span>
         <span class="stat-label">Total forks</span>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">🏷️</div>
         <span class="stat-value" id="totalReleases">—</span>
         <span class="stat-label">Releases</span>
       </div>
@@ -59,7 +59,7 @@
 
   <footer class="app-footer wrap">
     <p class="muted">
-      Data fetched live from the GitHub REST API. Last updated:
+      Data fetched live from the GitHub API · Last updated
       <span id="updatedAt">never</span>.
     </p>
   </footer>
