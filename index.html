@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Download Statistics</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="wrap">
+      <h1>📊 Download Statistics</h1>
+      <p class="subtitle">GitHub release downloads, stars &amp; forks for selected repositories</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="controls">
+      <div class="token-row">
+        <label for="token">
+          GitHub token <span class="muted">(optional — required for private repos &amp; higher rate limit)</span>
+        </label>
+        <div class="token-input">
+          <input
+            type="password"
+            id="token"
+            placeholder="ghp_… or github_pat_… (stored only in your browser)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="saveToken" type="button">Save</button>
+          <button id="refresh" type="button" class="primary">Refresh</button>
+        </div>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="totals" class="totals" hidden>
+      <div class="stat-card">
+        <span class="stat-value" id="totalDownloads">—</span>
+        <span class="stat-label">Total downloads</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="totalStars">—</span>
+        <span class="stat-label">Total stars</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="totalForks">—</span>
+        <span class="stat-label">Total forks</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" id="totalReleases">—</span>
+        <span class="stat-label">Releases</span>
+      </div>
+    </section>
+
+    <section id="repos" class="repos"></section>
+  </main>
+
+  <footer class="app-footer wrap">
+    <p class="muted">
+      Data fetched live from the GitHub REST API. Last updated:
+      <span id="updatedAt">never</span>.
+    </p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
