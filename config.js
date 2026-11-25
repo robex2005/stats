@@ -3,6 +3,6 @@
 window.STATS_CONFIG = {
   repos: [
     "robex2005/MorphHomeX",
-    "robex2005/general-adblock-whitelist",
+    "robex2005/alerte-meteo-ro",
   ],
 };
