@@ -310,6 +310,81 @@ main.wrap { padding-bottom: 48px; }
 .asset a:hover { color: var(--accent); }
 .asset .a-count { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+.repo-breakdown {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Changelog (release notes) */
+.changelog {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-left: 2px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.changelog > :first-child { margin-top: 0; }
+.changelog > :last-child { margin-bottom: 0; }
+.changelog h1, .changelog h2, .changelog h3, .changelog h4 {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 12px 0 4px;
+}
+.changelog p { margin: 6px 0; }
+.changelog ul, .changelog ol { margin: 6px 0; padding-left: 20px; }
+.changelog li + li { margin-top: 2px; }
+.changelog a { color: var(--accent); text-decoration: none; }
+.changelog a:hover { text-decoration: underline; }
+.changelog code {
+  font-size: 0.8rem;
+  background: var(--bg-elev-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.changelog pre { white-space: pre-wrap; margin: 0; font-family: inherit; }
+.changelog img { max-width: 100%; height: auto; border-radius: 8px; }
+
+/* Collapsible older releases */
+.older {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.015);
+}
+.older > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.older > summary::-webkit-details-marker { display: none; }
+.older > summary:hover { background: rgba(255, 255, 255, 0.035); color: var(--text); }
+.older-label::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+.older[open] .older-label::before { transform: rotate(90deg); }
+.older-count { font-variant-numeric: tabular-nums; color: var(--text); }
+.older-count small { color: var(--muted); font-weight: 500; }
+.older-list { padding: 0 4px 6px; border-top: 1px solid var(--border); }
+
 .app-footer { padding-bottom: 44px; text-align: center; font-size: 0.85rem; }
 
 @keyframes rise {

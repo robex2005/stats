@@ -3,6 +3,11 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Pushes made by the traffic workflow's GITHUB_TOKEN don't trigger "push",
+  # so redeploy whenever that workflow finishes.
+  workflow_run:
+    workflows: ["Collect traffic"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:

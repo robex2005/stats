@@ -60,15 +60,38 @@
     return s.slice(0, 140);
   }
 
-  async function loadRepo(slug) {
+  // Daily clone/view history collected by the "Collect traffic" workflow
+  // (GitHub only exposes the last 14 days, and only with a token).
+  async function loadTraffic() {
+    try {
+      const res = await fetch(`data/traffic.json?t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return {};
+      const data = await res.json();
+      return (data && data.repos) || {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  const sumDays = (days, before) =>
+    Object.entries(days || {}).reduce(
+      (s, [day, v]) => (before && day >= before ? s : s + (v[0] || 0)), 0);
+
+  async function loadRepo(slug, traffic) {
     const [owner, repo] = slug.split("/");
     const info = await fetchAll(`${API}/repos/${owner}/${repo}`);
     const releases = await fetchAll(`${API}/repos/${owner}/${repo}/releases?per_page=100`);
 
-    let downloads = 0;
+    let assetDownloads = 0;
     for (const rel of releases) {
-      for (const asset of rel.assets || []) downloads += asset.download_count || 0;
+      for (const asset of rel.assets || []) assetDownloads += asset.download_count || 0;
     }
+
+    // Marketplace installs of repos without a release asset download the
+    // source archive, which GitHub doesn't count — those show up as clones.
+    const t = traffic[slug] || {};
+    const zipSince = ((window.STATS_CONFIG || {}).zipSince || {})[slug] || null;
+    const cloneDownloads = sumDays(t.clones, zipSince);
 
     return {
       slug,
@@ -76,8 +99,25 @@
       stars: info.stargazers_count || 0,
       forks: info.forks_count || 0,
       releases,
-      downloads,
+      assetDownloads,
+      cloneDownloads,
+      views: sumDays(t.views),
+      downloads: assetDownloads + cloneDownloads,
     };
+  }
+
+  // Release notes are Markdown; render with marked and sanitize.
+  function renderNotes(body) {
+    if (!body || !body.trim()) return null;
+    let html;
+    if (window.marked && window.DOMPurify) {
+      html = window.DOMPurify.sanitize(window.marked.parse(body, { gfm: true, breaks: true }));
+    } else {
+      html = `<pre>${escapeHtml(body)}</pre>`;
+    }
+    const box = el("div", "changelog", html);
+    box.querySelectorAll("a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
+    return box;
   }
 
   function el(tag, className, html) {
@@ -95,8 +135,14 @@
       <div class="repo-badges">
         <span class="badge">⭐ <b>${fmt(data.stars)}</b></span>
         <span class="badge">🍴 <b>${fmt(data.forks)}</b></span>
-        <span class="badge">⬇️ <b>${fmt(data.downloads)}</b></span>
+        <span class="badge" title="Views (since traffic tracking began)">👁️ <b>${fmt(data.views)}</b></span>
+        <span class="badge" title="Release asset downloads + clones">⬇️ <b>${fmt(data.downloads)}</b></span>
       </div>`));
+
+    const parts = [];
+    if (data.assetDownloads) parts.push(`${fmt(data.assetDownloads)} release downloads`);
+    if (data.cloneDownloads) parts.push(`${fmt(data.cloneDownloads)} clones`);
+    if (parts.length) card.appendChild(el("p", "repo-breakdown", parts.join(" · ")));
 
     if (data.releases.length === 0) {
       card.appendChild(el("p", "empty-note", "No releases published yet."));
@@ -107,8 +153,7 @@
       (rel.assets || []).reduce((s, a) => s + (a.download_count || 0), 0);
     const max = Math.max(1, ...data.releases.map(totalOf));
 
-    const list = el("div", "rel-list");
-    for (const rel of data.releases) {
+    const renderRelease = (rel) => {
       const total = totalOf(rel);
       const name = rel.name || rel.tag_name || "(untitled)";
       const date = rel.published_at
@@ -145,15 +190,36 @@
         item.appendChild(assets);
       } else {
         const note = el("div", "asset-note",
-          "No downloadable assets — source-code archives aren't counted by GitHub.");
+          "No release asset — installs of this version are counted as clones.");
         if (rel.html_url) {
           note.innerHTML += ` <a href="${rel.html_url}" target="_blank" rel="noopener">View release ↗</a>`;
         }
         item.appendChild(note);
       }
 
-      list.appendChild(item);
+      const notes = renderNotes(rel.body);
+      if (notes) item.appendChild(notes);
+
+      return item;
+    };
+
+    const [latest, ...older] = data.releases;
+    const list = el("div", "rel-list");
+    const latestItem = renderRelease(latest);
+    latestItem.classList.add("latest");
+    list.appendChild(latestItem);
+
+    if (older.length) {
+      const more = el("details", "older");
+      more.appendChild(el("summary", null,
+        `<span class="older-label">${older.length} older release${older.length > 1 ? "s" : ""}</span>` +
+        `<span class="older-count">${fmt(older.reduce((s, r) => s + totalOf(r), 0))} <small>dl</small></span>`));
+      const inner = el("div", "older-list");
+      for (const rel of older) inner.appendChild(renderRelease(rel));
+      more.appendChild(inner);
+      list.appendChild(more);
     }
+
     card.appendChild(list);
     return card;
   }
@@ -182,9 +248,10 @@
     setStatus("Loading…");
     els.repos.innerHTML = "";
 
+    const traffic = await loadTraffic();
     const results = await Promise.all(
       repos.map((slug) =>
-        loadRepo(slug).then(
+        loadRepo(slug, traffic).then(
           (data) => ({ ok: true, data }),
           (err) => ({ ok: false, slug, err })
         )
