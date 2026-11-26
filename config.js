@@ -5,10 +5,4 @@ window.STATS_CONFIG = {
     "robex2005/MorphHomeX",
     "robex2005/alerte-meteo-ro",
   ],
-  // Date from which a repo's Marketplace downloads are counted exactly via the
-  // release zip asset. Clones before this date are counted as downloads; repos
-  // not listed here count all clones (no release asset to count).
-  zipSince: {
-    "robex2005/alerte-meteo-ro": "2026-11-26",
-  },
 };

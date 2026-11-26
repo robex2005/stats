@@ -73,9 +73,9 @@
     }
   }
 
-  const sumDays = (days, before) =>
-    Object.entries(days || {}).reduce(
-      (s, [day, v]) => (before && day >= before ? s : s + (v[0] || 0)), 0);
+  // idx 0 = count, 1 = uniques (per day)
+  const sumDays = (days, idx = 0) =>
+    Object.values(days || {}).reduce((s, v) => s + (v[idx] || 0), 0);
 
   async function loadRepo(slug, traffic) {
     const [owner, repo] = slug.split("/");
@@ -87,11 +87,9 @@
       for (const asset of rel.assets || []) assetDownloads += asset.download_count || 0;
     }
 
-    // Marketplace installs of repos without a release asset download the
-    // source archive, which GitHub doesn't count — those show up as clones.
+    // Clones are shown separately: they come mostly from bots, CI and
+    // automated checks, not from installs, so they aren't downloads.
     const t = traffic[slug] || {};
-    const zipSince = ((window.STATS_CONFIG || {}).zipSince || {})[slug] || null;
-    const cloneDownloads = sumDays(t.clones, zipSince);
 
     return {
       slug,
@@ -99,10 +97,10 @@
       stars: info.stargazers_count || 0,
       forks: info.forks_count || 0,
       releases,
-      assetDownloads,
-      cloneDownloads,
+      clones: sumDays(t.clones),
+      clonesUnique: sumDays(t.clones, 1),
       views: sumDays(t.views),
-      downloads: assetDownloads + cloneDownloads,
+      downloads: assetDownloads,
     };
   }
 
@@ -136,13 +134,12 @@
         <span class="badge">⭐ <b>${fmt(data.stars)}</b></span>
         <span class="badge">🍴 <b>${fmt(data.forks)}</b></span>
         <span class="badge" title="Views (since traffic tracking began)">👁️ <b>${fmt(data.views)}</b></span>
-        <span class="badge" title="Release asset downloads + clones">⬇️ <b>${fmt(data.downloads)}</b></span>
+        <span class="badge" title="Git clones (${fmt(data.clonesUnique)} unique) — mostly bots/CI, not installs">📥 <b>${fmt(data.clones)}</b></span>
+        <span class="badge" title="Release asset downloads (Marketplace installs/updates)">⬇️ <b>${fmt(data.downloads)}</b></span>
       </div>`));
 
-    const parts = [];
-    if (data.assetDownloads) parts.push(`${fmt(data.assetDownloads)} release downloads`);
-    if (data.cloneDownloads) parts.push(`${fmt(data.cloneDownloads)} clones`);
-    if (parts.length) card.appendChild(el("p", "repo-breakdown", parts.join(" · ")));
+    card.appendChild(el("p", "repo-breakdown",
+      `${fmt(data.downloads)} release downloads · ${fmt(data.clones)} clones (${fmt(data.clonesUnique)} unique) · ${fmt(data.views)} views`));
 
     if (data.releases.length === 0) {
       card.appendChild(el("p", "empty-note", "No releases published yet."));
@@ -190,7 +187,7 @@
         item.appendChild(assets);
       } else {
         const note = el("div", "asset-note",
-          "No release asset — installs of this version are counted as clones.");
+          "No release asset — GitHub doesn't count source-archive downloads.");
         if (rel.html_url) {
           note.innerHTML += ` <a href="${rel.html_url}" target="_blank" rel="noopener">View release ↗</a>`;
         }
